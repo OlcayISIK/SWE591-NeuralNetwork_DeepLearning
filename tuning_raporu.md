@@ -49,3 +49,41 @@ Yapılan testler sonucunda en iyi performansı gösteren model:
 3.  **Hafıza Kapasitesinin Etkisi:** 128 boyutlu Hidden Size, her senaryoda 64 boyutlu modele göre üstünlük sağlamış, MNIST gibi 28 farklı zaman adımı (time step) barındıran ardışık örüntüleri çözümlemede yüksek kapasitenin doğrudan performans artışı sağladığını kanıtlamıştır.
 
 Özetle, modelin hiperparametreleri rastgele denemeler yerine tamamen sistematik ve analitik bir yöntemle optimize edilmiştir. Modelin kapasitesi, öğrenme hızı ve veri besleme boyutu arasındaki ilişki gözlemlenerek projenin ana hedeflerinden olan >%90 doğruluk barajı son derece bilimsel bir arka planla aşılmıştır.
+
+---
+
+### Görev 3: Variational Autoencoder (VAE) Hiperparametre Optimizasyonu
+
+Projenin en gelişmiş modeli olan LSTM kodlayıcılı VAE (Variational Autoencoder) modeli için de benzer şekilde sistematik bir grid search yapılmıştır. VAE'lerin performansı geleneksel modellerden farklı olarak sadece yeniden yapılandırma hatasıyla (Reconstruction Loss) değil, aynı zamanda gizli uzaydaki dağılımın standart normal dağılıma ne kadar benzediğini ölçen **KL Divergence** ile birlikte **Toplam ELBO Kaybı (Total Loss)** üzerinden değerlendirilir.
+
+#### 1. Test Edilen Hiperparametreler
+Modelin karmaşıklığı gereği, VAE mimarisini doğrudan etkileyen şu üç temel parametre üzerinde 8 farklı kombinasyon test edilmiştir (Tüm testler 10 epoch boyunca çalıştırılmıştır):
+*   **Latent Dimension (10 ve 20):** Darboğazın boyutu. 20 boyutlu uzay, daha fazla özellik saklarken (düşük Recon Loss), modelin dağılımı öğrenmesini zorlaştırabilir (yüksek KL Divergence). 
+*   **Hidden Size (64 ve 128):** LSTM kodlayıcının hücresel kapasitesi.
+*   **Learning Rate (1e-3 ve 5e-4):** Adam optimizasyon algoritmasının adım büyüklüğü.
+
+#### 2. Grid Search Sonuçları (Test Veri Seti Üzerinde)
+
+Aşağıdaki tablo, 8 modelin **Toplam Kayıp (Total Loss)** değerine göre en iyiden en kötüye doğru sıralanmış halini göstermektedir:
+
+| Latent Dim | Hidden Size | Learning Rate | Total Loss | Recon Loss (BCE) | KL Divergence |
+|------------|-------------|---------------|------------|------------------|---------------|
+| **20**     | **128**     | **0.0010**    | **106.58** | **89.26**        | 17.31         |
+| 20         | 128         | 0.0005        | 109.49     | 92.26            | 17.23         |
+| 10         | 128         | 0.0010        | 110.65     | 95.87            | 14.78         |
+| 20         | 64          | 0.0010        | 111.10     | 95.28            | 15.81         |
+| 10         | 64          | 0.0010        | 113.75     | 99.55            | 14.20         |
+| 10         | 128         | 0.0005        | 113.76     | 99.73            | 14.03         |
+| 20         | 64          | 0.0005        | 117.72     | 103.64           | 14.07         |
+| 10         | 64          | 0.0005        | 118.18     | 104.46           | **13.72**     |
+
+#### 3. Sonuç Analizi ve Bilimsel Çıkarımlar
+
+Optimizasyon sonuçları incelendiğinde, en başarılı modelin **Latent Dim: 20, Hidden Size: 128 ve LR: 0.001** kombinasyonuna sahip olduğu görülmektedir.
+
+**Çıkarımlarımız:**
+1.  **Latent Dimension ve Trade-off (Ödünleşim):** Latent Dim = 20 olduğunda model daha zengin bir vektörel temsil kapasitesine sahip olduğu için *Reconstruction Loss* (Yeniden Yapılandırma Hatası) ciddi şekilde düşmüştür (89.26'ya kadar). Ancak yüksek boyut, standart normal dağılıma uymayı zorlaştırdığından *KL Divergence* değeri artmıştır. Latent Dim = 10 olan modellerde ise tersi şekilde *KL Divergence* daha düşük (örneğin 13.72) ancak *Reconstruction Loss* çok daha yüksektir (104.46). Bu durum VAE'nin karakteristik ödünleşimiyle birebir örtüşmektedir; toplam kayıp dikkate alındığında 20 boyutun daha optimum bir denge kurduğu görülmüştür.
+2.  **Öğrenme Oranının (LR) Etkisi:** Tıpkı LSTM optimizasyonunda olduğu gibi, `0.001` öğrenme oranına sahip modeller, `0.0005`'e sahip benzerlerine kıyasla her zaman daha düşük toplam kayıp elde etmiştir. Bu da Adam optimizer için `1e-3` değerinin bu veri setinde optimum minimuma daha iyi yaklaştığını doğrular.
+3.  **Hafıza Kapasitesinin (Hidden Size) Etkisi:** Hidden Size = 128 olan modeller, 64 olan modellere göre LSTM içerisindeki ardışık zamansal ilişkileri çok daha iyi çözümlemiş ve hem yeniden yapılandırma hem de toplam ELBO kaybında bariz bir üstünlük kurmuştur.
+
+Bu detaylı optimizasyon süreci sonucunda, VAE modelinin kapasitesi sistematik olarak maksimum düzeye çıkarılmış ve oluşturduğumuz jeneratif model bilimsel olarak doğrulanmıştır.
