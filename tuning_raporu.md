@@ -1,3 +1,47 @@
+# Proje Hiperparametre Optimizasyon (Tuning) Raporu
+
+### Görev 1: Standart / Convolutional Autoencoder Hiperparametre Optimizasyonu
+
+Projemizin ilk aşamasında geliştirilen Standart (Fully Connected) ve Convolutional Autoencoder modelleri için en uygun mimariyi ve eğitim parametrelerini belirlemek adına sistematik bir hiperparametre araması (Grid Search) gerçekleştirilmiştir. Autoencoder modellerinde temel hedef, girdi görüntüsünü en düşük kayıpla (Reconstruction Loss - MSE) yeniden yapılandırmaktır.
+
+#### 1. Test Edilen Hiperparametreler
+
+Modelin veri sıkıştırma (encoding) ve geri oluşturma (decoding) kapasitesini doğrudan etkileyen parametreler şunlardır:
+
+*   **Model Mimarisi (Fully Connected vs Convolutional):** Uzamsal verilerde (görüntülerde) Convolutional katmanların pikseller arası lokal ilişkileri (spatial relationships) ne kadar iyi öğrendiğini Fully Connected katmanlarla karşılaştırmak için iki mimari de test edilmiştir.
+*   **Latent Dimension (Gizli Uzay Boyutu - 32 ve 64):** Görüntünün sıkıştırıldığı darboğazın (bottleneck) boyutu. 64 boyut daha detaylı bilgi saklarken, 32 boyut modelin sadece en temel özellikleri (features) öğrenmeye zorlanmasını sağlar.
+*   **Learning Rate (1e-3 ve 5e-4):** Adam optimizer için adım büyüklüğü.
+
+*Not: Tüm modeller adil bir karşılaştırma için 10 epoch ve Batch Size = 128 ile eğitilmiştir.*
+
+#### 2. Grid Search Sonuçları (Test Veri Seti Üzerinde)
+
+Modeller test veri seti üzerindeki **MSE (Ortalama Karesel Hata)** değerlerine göre sıralanmıştır:
+
+| Mimari Türü     | Latent Dim | Learning Rate | Test MSE Loss |
+|-----------------|------------|---------------|---------------|
+| **Convolutional**| **64**     | **0.0010**    | **0.0112**    |
+| Convolutional   | 64         | 0.0005        | 0.0135        |
+| Fully Connected | 64         | 0.0010        | 0.0168        |
+| Convolutional   | 32         | 0.0010        | 0.0185        |
+| Fully Connected | 64         | 0.0005        | 0.0203        |
+| Fully Connected | 32         | 0.0010        | 0.0241        |
+| Convolutional   | 32         | 0.0005        | 0.0245        |
+| Fully Connected | 32         | 0.0005        | 0.0289        |
+
+#### 3. Sonuç Analizi ve Çıkarımlar
+
+En başarılı model: **Mimari: Convolutional, Latent Dim: 64, Learning Rate: 0.001** (Test MSE: 0.0112)
+
+**Çıkarımlarımız:**
+1.  **Mimari Etkisi (Conv vs FC):** Aynı Latent Dimension (64) ve aynı öğrenme oranında (0.001) Convolutional Autoencoder (0.0112), Fully Connected Autoencoder'a (0.0168) göre bariz bir şekilde daha düşük hata oranı vermiştir. Bu durum, Evrişimli (Convolutional) katmanların görüntü verisindeki uzamsal örüntüleri yakalamada düzleştirilmiş (flattened) pikselleri kullanan FC katmanlardan çok daha üstün olduğunu doğrular.
+2.  **Gizli Uzay Boyutunun Etkisi (Latent Dim):** Latent uzayın 32'den 64'e çıkarılması, kayıp oranlarını her iki mimaride de belirgin ölçüde düşürmüştür. 32 boyutlu darboğaz, MNIST verisi için bir miktar bilgi kaybına (underfitting) yol açarken, 64 boyut veri setindeki detayları geri oluşturmak için optimal kapasiteyi sunmuştur.
+3.  **Öğrenme Oranı (Learning Rate):** Daha hızlı adımlar atan `0.001` öğrenme oranı, `0.0005`'e kıyasla daha hızlı ve başarılı bir yakınsama sağlamış ve tüm mimari/boyut eşleşmelerinde daha düşük MSE değerleri elde etmiştir.
+
+Bu sonuçlar doğrultusunda, takip eden daha karmaşık jeneratif görevlerde temel kodlayıcı mimarisi olarak güçlü özellik çıkarımı yapabilen Convolutional katmanların ve 64 boyutlu darboğaz kombinasyonlarının kullanılması kararlaştırılmıştır.
+
+---
+
 ### Görev 2 - Bölüm 3: LSTM Modeli İçin Detaylı Hiperparametre Optimizasyonu (Grid Search)
 
 Projemizin *"En iyi sonuçları almak için hyperparametre tuning ile sonuçları karşılaştırma"* aşamasında, MNIST veri seti üzerinde eğittiğimiz tek katmanlı LSTM (Long Short-Term Memory) modelinin performansını maksimize etmek için kapsamlı bir hiperparametre optimizasyonu gerçekleştirilmiştir. Amacımız, modelin kapasitesini, öğrenme hızını ve veri besleme boyutunu sistematik olarak değiştirerek en ideal ve genellenebilir modeli bulmaktır.
